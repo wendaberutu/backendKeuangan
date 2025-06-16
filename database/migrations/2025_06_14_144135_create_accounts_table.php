@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('accounts', function (Blueprint $table) {
             $table->id();
-            $table->string('kode_akun', 10)->unique();
+            $table->string('kode_akun')->unique();
             $table->enum('jenis_akun', ['aset', 'kewajiban', 'ekuitas', 'pendapatan', 'beban']);
             $table->string('nama_akun');
-            $table->text('keterangan')->nullable();
+            $table->text('deskripsi')->nullable();
             $table->timestamps();
         });
     }

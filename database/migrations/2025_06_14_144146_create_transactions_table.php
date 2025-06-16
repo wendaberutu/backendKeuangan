@@ -13,15 +13,14 @@ return new class extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
-            $table->timestamp('waktu')->useCurrent();
-            $table->string('kode_akun', 10);
-            $table->string('nama_transaksi');
-            $table->text('keterangan')->nullable();
-            $table->decimal('nominal', 15, 2);
-            $table->enum('tipe_transaksi', ['masuk', 'keluar']); // masuk = debit, keluar = kredit
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->foreign('kode_akun')->references('kode_akun')->on('accounts')->cascadeOnUpdate()->restrictOnDelete();
-            $table->timestamps(); // created_at dan updated_at
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('account_id')->constrained()->cascadeOnDelete();
+            $table->enum('tipe_transaksi', ['masuk', 'keluar']);
+            $table->text('deskripsi')->nullable();
+            $table->text('no_bukti')->nullable();
+            $table->date('waktu');
+            $table->unsignedBigInteger('nominal');
+            $table->timestamps();
         });
     }
 
