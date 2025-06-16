@@ -10,29 +10,25 @@ class Transaction extends Model
     use HasFactory;
 
     protected $fillable = [
-        'waktu',
-        'kode_akun',
-        'nama_transaksi',
-        'keterangan',
-        'nominal',
-        'tipe_transaksi',
         'user_id',
+        'account_id',
+        'tipe_transaksi',
+        'deskripsi',
+        'waktu',
+        'nominal',
     ];
 
     protected $casts = [
-        'waktu' => 'datetime',
-        'nominal' => 'decimal:2',
+        'waktu' => 'date',
     ];
 
-    /**
-     * Transaction belongs to an account.
-     */
-    public function account()
-    {
-        return $this->belongsTo(Account::class, 'kode_akun', 'kode_akun');
-    }
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function account()
+    {
+        return $this->belongsTo(Account::class);
     }
 }
