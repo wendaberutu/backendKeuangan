@@ -17,15 +17,24 @@ class TransactionController extends Controller
     public function index(): JsonResponse
     {
         try {
-            $transactions = Transaction::orderBy('waktu', 'desc')->get();
+            // Menggunakan paginate untuk mengambil 10 data per halaman
+            $transactions = Transaction::orderBy('waktu', 'desc')
+                ->paginate(10);  // 10 transaksi per halaman
+
             return response()->json([
                 'message' => 'Transaction list retrieved successfully',
                 'data' => $transactions
             ], 200);
         } catch (Exception $e) {
-            return $this->errorResponse($e);
+            // Menangani error
+            return response()->json([
+                'message' => 'Failed to retrieve transactions',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
+
+ 
 
     /* GET /api/transactions/{transaction} */
     public function show(Transaction $transaction): JsonResponse
