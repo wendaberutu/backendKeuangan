@@ -48,13 +48,35 @@ class AccountController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
+            // Validasi data
             $validated = $request->validate([
-                'kode_akun'   => 'required|string|max:10|unique:accounts,kode_akun',
-                'jenis_akun'  => ['required', Rule::in(['aset', 'kewajiban', 'ekuitas', 'pendapatan', 'beban'])],
-                'nama_akun'   => 'required|string|max:191',
-                'keterangan'  => 'nullable|string',
+                'jenis_akun' => ['required', Rule::in(['aset', 'kewajiban', 'ekuitas', 'pendapatan', 'beban'])],
+                'nama_akun'  => 'required|string|max:191',
+                'deskripsi' => 'nullable|string',
             ]);
 
+            // Mendapatkan prefix berdasarkan jenis akun
+            $jenisAkunPrefix = $this->getAkunPrefix($validated['jenis_akun']);
+
+            // Mendapatkan kode akun terakhir untuk jenis akun yang dipilih
+            $lastAccount = Account::where('kode_akun', 'like', $jenisAkunPrefix . '%')
+                ->latest('kode_akun')
+                ->first();
+
+            // Menentukan nomor urut berikutnya
+            if ($lastAccount) {
+                // Ambil angka terakhir setelah prefix dan tambah 1
+                $lastNumber = (int)substr($lastAccount->kode_akun, 1);
+                $newAccountCode = $jenisAkunPrefix . ($lastNumber + 1);
+            } else {
+                // Jika belum ada, mulai dengan angka 1
+                $newAccountCode = $jenisAkunPrefix . '1';
+            }
+
+            // Menambahkan kode akun ke dalam data yang akan disimpan
+            $validated['kode_akun'] = $newAccountCode;
+
+            // Membuat akun baru
             $account = Account::create($validated);
 
             return response()->json([
@@ -67,6 +89,20 @@ class AccountController extends Controller
             return $this->errorResponse($e);
         }
     }
+
+    private function getAkunPrefix($jenisAkun)
+    {
+        $prefixes = [
+            'aset'      => 'A',
+            'kewajiban' => 'B',
+            'ekuitas'   => 'C',
+            'pendapatan' => 'D',
+            'beban'     => 'E',
+        ];
+
+        return $prefixes[$jenisAkun] ?? 'A'; // Default ke 'A' jika tidak ditemukan
+    }
+
 
     /* PUT/PATCH /api/accounts/{id} */
     public function update(Request $request, Account $account): JsonResponse
@@ -81,7 +117,7 @@ class AccountController extends Controller
                 ],
                 'jenis_akun'  => ['required', Rule::in(['aset', 'kewajiban', 'ekuitas', 'pendapatan', 'beban'])],
                 'nama_akun'   => 'required|string|max:191',
-                'keterangan'  => 'nullable|string',
+                'deskripsi'  => 'nullable|string',
             ]);
 
             $account->update($validated);

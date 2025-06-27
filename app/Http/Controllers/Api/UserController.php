@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
-{
+{ 
     /**
      * Display a listing of the users with role 'admin'.
      *

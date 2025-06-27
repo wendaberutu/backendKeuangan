@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
+use Exception;
+use App\Models\Account;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Http\JsonResponse;
+use App\Http\Controllers\Controller;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Exception;
-use Illuminate\Http\JsonResponse;
 
 class TransactionController extends Controller
 {
@@ -17,16 +18,19 @@ class TransactionController extends Controller
     public function index(): JsonResponse
     {
         try {
-            // Menggunakan paginate untuk mengambil 10 data per halaman
-            $transactions = Transaction::orderBy('waktu', 'desc')
-                ->paginate(10);  // 10 transaksi per halaman
+            $transactions = Transaction::orderBy('updated_at', 'desc')->get();
+
+            // Tambahkan nama_akun ke setiap transaksi
+            $transactions->transform(function ($transaction) {
+                $transaction->nama_akun = Account::where('id', $transaction->account_id)->value('nama_akun');
+                return $transaction;
+            });
 
             return response()->json([
                 'message' => 'Transaction list retrieved successfully',
                 'data' => $transactions
             ], 200);
         } catch (Exception $e) {
-            // Menangani error
             return response()->json([
                 'message' => 'Failed to retrieve transactions',
                 'error' => $e->getMessage()
@@ -34,7 +38,9 @@ class TransactionController extends Controller
         }
     }
 
- 
+
+
+
 
     /* GET /api/transactions/{transaction} */
     public function show(Transaction $transaction): JsonResponse
@@ -42,7 +48,17 @@ class TransactionController extends Controller
         try {
             return response()->json([
                 'message' => 'Transaction detail retrieved',
-                'data' => $transaction,
+                'data' => [
+                    'id' => $transaction->id,
+                    'user_id' => $transaction->user_id,
+                    'account_id' => $transaction->account_id,
+                    'nama_akun' => Account::where('id', $transaction->account_id)->value('nama_akun'),
+                    'tipe_transaksi' => $transaction->tipe_transaksi,
+                    'no_bukti' => $transaction->no_bukti,
+                    'deskripsi' => $transaction->deskripsi,
+                    'waktu' => \Carbon\Carbon::parse($transaction->waktu)->format('Y-m-d'),
+                    'nominal' => $transaction->nominal,
+                ]
             ], 200);
         } catch (ModelNotFoundException $e) {
             return response()->json([
@@ -53,12 +69,66 @@ class TransactionController extends Controller
         }
     }
 
+
     /* POST /api/transactions */
+    public function update(Request $request, Transaction $transaction): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'no_bukti' => 'required|string|max:50',
+                'tipe_transaksi' => ['required', Rule::in(['masuk', 'keluar'])],
+                'deskripsi' => 'nullable|string|max:500',
+                'waktu' => 'required|date',
+                'nominal' => 'required|numeric|min:0',
+            ]);
+
+            $originalNoBukti = $validated['no_bukti'];
+
+            // Jika no_bukti tidak berubah, langsung update
+            if ($originalNoBukti === $transaction->no_bukti) {
+                $transaction->update($validated);
+            } else {
+                // Cek duplikat dan tambahkan suffix jika perlu
+                $noBukti = $originalNoBukti;
+                $counter = 1;
+
+                while (
+                    Transaction::where('no_bukti', $noBukti)
+                    ->where('id', '!=', $transaction->id) // abaikan diri sendiri
+                    ->exists()
+                ) {
+                    $noBukti = $originalNoBukti . '-' . $counter;
+                    $counter++;
+                }
+
+                $validated['no_bukti'] = $noBukti;
+
+                $transaction->update($validated);
+            }
+
+            return response()->json([
+                'message' => 'Transaction updated successfully',
+                'data' => $transaction,
+            ], 200);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Validasi gagal',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Terjadi kesalahan',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
     public function store(Request $request): JsonResponse
     {
         try {
             $validated = $request->validate([
-                'no_bukti' => 'required|string|max:50|unique:transactions,no_bukti',
+                'no_bukti' => 'required|string|max:50',
                 'user_id' => 'required|exists:users,id',
                 'account_id' => 'required|exists:accounts,id',
                 'tipe_transaksi' => ['required', Rule::in(['masuk', 'keluar'])],
@@ -66,6 +136,18 @@ class TransactionController extends Controller
                 'waktu' => 'required|date',
                 'nominal' => 'required|numeric|min:0',
             ]);
+
+            $originalNoBukti = $validated['no_bukti'];
+            $noBukti = $originalNoBukti;
+            $counter = 1;
+
+            // Cek dan tambah suffix jika duplikat
+            while (Transaction::where('no_bukti', $noBukti)->exists()) {
+                $noBukti = $originalNoBukti . '-' . $counter;
+                $counter++;
+            }
+
+            $validated['no_bukti'] = $noBukti;
 
             $transaction = Transaction::create($validated);
 
@@ -80,19 +162,15 @@ class TransactionController extends Controller
         }
     }
 
+
     /* PUT/PATCH /api/transactions/{transaction} */
-    public function update(Request $request, Transaction $transaction): JsonResponse
+    public function update2(Request $request, Transaction $transaction): JsonResponse
     {
         try {
             $validated = $request->validate([
-                'no_bukti' => [
-                    'required',
-                    'string',
-                    'max:50',
-                    Rule::unique('transactions', 'no_bukti')->ignore($transaction->id)
-                ],
-                'user_id' => 'required|exists:users,id',
-                'account_id' => 'required|exists:accounts,id',
+                // 'no_bukti' => 'required|string|max:50|unique:transactions,no_bukti',
+                // 'user_id' => 'required|exists:users,id',
+                'account_id' => 'required',
                 'tipe_transaksi' => ['required', Rule::in(['masuk', 'keluar'])],
                 'deskripsi' => 'nullable|string|max:500',
                 'waktu' => 'required|date',
