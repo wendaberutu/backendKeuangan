@@ -13,14 +13,20 @@ class Account extends Model
         'kode_akun',
         'jenis_akun',
         'nama_akun',
-        'keterangan',
+        'deskripsi',
     ];
 
     /**
      * An account has many transactions.
      */
+ 
+    // Relasi satu ke banyak dengan Transaction
     public function transactions()
     {
-        return $this->hasMany(Transaction::class, 'kode_akun', 'kode_akun');
+        return $this->hasMany(Transaction::class, 'account_id', 'id');
     }
+    // public function getWaktuAttribute($value)
+    // {
+    //     return \Carbon\Carbon::parse($value)->format('d-m-Y'); // Format sesuai keinginan
+    // }
 }
