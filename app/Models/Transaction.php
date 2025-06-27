@@ -13,6 +13,7 @@ class Transaction extends Model
         'user_id',
         'account_id',
         'tipe_transaksi',
+        'no_bukti',
         'deskripsi',
         'waktu',
         'nominal',
@@ -27,8 +28,14 @@ class Transaction extends Model
         return $this->belongsTo(User::class);
     }
 
+    // Relasi dengan Account (belongsTo)
     public function account()
     {
-        return $this->belongsTo(Account::class);
+        return $this->belongsTo(Account::class, 'account_id', 'id');
     }
+    public function getWaktuAttribute($value)
+    {
+        return \Carbon\Carbon::parse($value)->format('d-m-Y'); // Format sesuai keinginan
+    }
+    
 }
