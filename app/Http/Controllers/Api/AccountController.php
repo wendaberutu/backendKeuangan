@@ -156,6 +156,21 @@ class AccountController extends Controller
         ], 422);
     }
 
+    public function dropdownAccounts(){
+         
+            try{
+            $accounts = Account::select('id', 'nama_akun')->get();
+            return response()->json([
+                'message' => 'Accounts for droprown',
+                'data' => $accounts
+            ], 200);
+
+            }catch (Exception $e) {
+            return $this->errorResponse($e);
+         }
+         
+        }
+
     /* Handle general errors */
     private function errorResponse(Exception $e): JsonResponse
     {
