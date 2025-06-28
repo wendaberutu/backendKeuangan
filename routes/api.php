@@ -15,7 +15,7 @@ use App\Http\Controllers\Api\TransactionController;
 // return $request->user();
 // })->middleware('auth:sanctum');
 
-// Route::apiResource('product', ProductController::class);
+// Route::apiResource('product', ProductController::class); 
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api');
@@ -50,6 +50,10 @@ Route::middleware(['auth:api', 'isOwner'])->group(
 );
 
 
+Route::get('/accounts/dropdown', function () {
+    return Account::select('id', 'nama_akun')->get();
+});
+
 Route::middleware(['auth:api', 'isAdmin'])->group(
     function () {
         // DROPDOWN Accounts JSON (WORK)
@@ -62,9 +66,8 @@ Route::middleware(['auth:api', 'isAdmin'])->group(
     }
 );
 
-Route::get('/accounts/dropdown', function () {
-    return Account::select('id', 'nama_akun')->get();
-});
+
+
 
 // WORK
 Route::middleware(['auth:api', 'isAdmin'])->group(function () {
